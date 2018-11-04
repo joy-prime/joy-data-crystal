@@ -1,0 +1,13 @@
+name: joy
+version: 0.1.0
+
+authors:
+  - deansher <deansherthompson@gmail.com>
+
+crystal: 0.26.1
+
+license: MIT
+
+dependencies:
+  immutable:
+    github: lucaong/immutable

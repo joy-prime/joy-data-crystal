@@ -5,19 +5,20 @@ module Joy
   VERSION = "0.1.0"
 
   class SafeBox
-    @@interned_type_strings = {} of String => String
+    @@type_strings = {} of Int32 => String
   
     getter type_id : Int32
     getter type_string : String
     getter box : Void*
   
-    def initialize(type_id, type_string, box)
-      @type_id = type_id
-      if ts = @@interned_type_strings[type_string]?
+    def initialize(clazz : Class, box)
+      @type_id = clazz.crystal_type_id
+      if ts = @@type_strings[@type_id]?
         @type_string = ts
       else
-        @@interned_type_strings[type_string] = type_string
-        @type_string = type_string
+        ts = clazz.to_s
+        @@type_strings[@type_id] = ts
+        @type_string = ts
       end
       @box = box
     end
@@ -25,9 +26,7 @@ module Joy
   
   class SafeBoxer(T)
     def self.box(object : T) : SafeBox
-      SafeBox.new(T.crystal_type_id,
-        T.to_s,
-        Box(T).box(object))
+      SafeBox.new(T, Box(T).box(object))
     end
   
     def self.unbox(safe_box : SafeBox)

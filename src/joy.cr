@@ -4,6 +4,41 @@ require "immutable"
 module Joy
   VERSION = "0.1.0"
 
+  class SafeBox
+    @@interned_type_strings = {} of String => String
+  
+    getter type_id : Int32
+    getter type_string : String
+    getter box : Void*
+  
+    def initialize(type_id, type_string, box)
+      @type_id = type_id
+      if ts = @@interned_type_strings[type_string]?
+        @type_string = ts
+      else
+        @@interned_type_strings[type_string] = type_string
+        @type_string = type_string
+      end
+      @box = box
+    end
+  end
+  
+  class SafeBoxer(T)
+    def self.box(object : T) : SafeBox
+      SafeBox.new(T.crystal_type_id,
+        T.to_s,
+        Box(T).box(object))
+    end
+  
+    def self.unbox(safe_box : SafeBox)
+      if safe_box.type_id != T.crystal_type_id
+        raise "Tried to unbox a SafeBox of #{safe_box.type_string} as a #{T}"
+      else
+        Box(T).unbox(safe_box.box)
+      end
+    end
+  end
+
   struct HKey(T)
     getter name : Symbol
     getter namespace : Symbol
@@ -14,7 +49,7 @@ module Joy
   end
 
   class HMap
-    alias Storage = Immutable::Map(NamedTuple(name: Symbol, namespace: Symbol), Pointer(Void))
+    alias Storage = Immutable::Map(NamedTuple(name: Symbol, namespace: Symbol), SafeBox)
 
     def initialize()
       @map = Storage.new
@@ -28,12 +63,12 @@ module Joy
     end
 
     def set(k : HKey(T), v : T) : HMap forall T
-      HMap.new(@map.set(internal_key(k), Box(T).box(v)))
+      HMap.new(@map.set(internal_key(k), SafeBoxer(T).box(v)))
     end
 
     def fetch(k : HKey(T), default : T) : T forall T
-      if void_ptr = @map[internal_key(k)]?
-        Box(T).unbox void_ptr
+      if box = @map[internal_key(k)]?
+        SafeBoxer(T).unbox box
       else
         default
       end

@@ -14,4 +14,6 @@ describe Joy do
 
     hmap.fetch(age_key, 0).should eq(28)
   end
+
+  # TODO: Test SafeBox
 end

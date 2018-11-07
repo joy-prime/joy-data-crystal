@@ -5,7 +5,7 @@ module Joy
   VERSION = "0.1.0"
 
   class SafeBox
-    @@type_strings = {} of Int32 => String
+    @@type_strings_by_type_id = {} of Int32 => String
   
     getter type_id : Int32
     getter type_string : String
@@ -13,11 +13,11 @@ module Joy
   
     def initialize(clazz : Class, box)
       @type_id = clazz.crystal_type_id
-      if ts = @@type_strings[@type_id]?
+      if ts = @@type_strings_by_type_id[@type_id]?
         @type_string = ts
       else
         ts = clazz.to_s
-        @@type_strings[@type_id] = ts
+        @@type_strings_by_type_id[@type_id] = ts
         @type_string = ts
       end
       @box = box
@@ -38,35 +38,45 @@ module Joy
     end
   end
 
-  struct HKey(T)
+  struct QName
     getter name : Symbol
     getter namespace : Symbol
+
+    def initialize(@name, @namespace)
+    end
+  end
+
+  struct HKey(T)
+    @@type_strings_by_type_id_by_qname = {} of QName => String
+
+    getter qname : QName
     getter docstring : String?
 
-    def initialize(@name, @namespace, @docstring = nil)
+    def initialize(name : Symbol, namespace : Symbol, @docstring = nil)
+      @qname = QName.new name, namespace
+      if existing = @@type_strings_by_type_id_by_qname[@qname]?
+        throw "Duplicate HKey: already declared #{qname} as #{existing}"
+      end
+      @@type_strings_by_type_id_by_qname[@qname] = T.to_s
     end
   end
 
   class HMap
-    alias Storage = Immutable::Map(NamedTuple(name: Symbol, namespace: Symbol), SafeBox)
+    alias Storage = Immutable::Map(QName, SafeBox)
 
     def initialize()
-      @map = Storage.new
+      @storage = Storage.new
     end
 
-    def initialize(@map)
-    end
-
-    def internal_key(k : HKey(T)) forall T
-      {name: k.name, namespace: k.namespace}
+    def initialize(@storage)
     end
 
     def set(k : HKey(T), v : T) : HMap forall T
-      HMap.new(@map.set(internal_key(k), SafeBoxer(T).box(v)))
+      HMap.new(@storage.set(k.qname, SafeBoxer(T).box(v)))
     end
 
     def fetch(k : HKey(T), default : T) : T forall T
-      if box = @map[internal_key(k)]?
+      if box = @storage[k.qname]?
         SafeBoxer(T).unbox box
       else
         default

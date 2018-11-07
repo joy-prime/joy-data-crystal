@@ -22,14 +22,12 @@ module Joy
       end
       @box = box
     end
-  end
-  
-  class SafeBoxer(T)
-    def self.box(object : T) : SafeBox
+
+    def self.box(object : T) : SafeBox forall T
       SafeBox.new(T, Box(T).box(object))
     end
   
-    def self.unbox(safe_box : SafeBox)
+    def self.unbox(safe_box : SafeBox, clazz : T.class) : T forall T
       if safe_box.type_id != T.crystal_type_id
         raise "Tried to unbox a SafeBox of #{safe_box.type_string} as a #{T}"
       else
@@ -37,7 +35,7 @@ module Joy
       end
     end
   end
-
+  
   struct QName
     getter name : Symbol
     getter namespace : Symbol
@@ -55,7 +53,7 @@ module Joy
     def initialize(name : Symbol, namespace : Symbol, @docstring = nil)
       @qname = QName.new name, namespace
       if existing = @@type_strings_by_type_id_by_qname[@qname]?
-        throw "Duplicate HKey: already declared #{qname} as #{existing}"
+        raise "Duplicate HKey: already declared #{qname} as #{existing}"
       end
       @@type_strings_by_type_id_by_qname[@qname] = T.to_s
     end
@@ -72,12 +70,12 @@ module Joy
     end
 
     def set(k : HKey(T), v : T) : HMap forall T
-      HMap.new(@storage.set(k.qname, SafeBoxer(T).box(v)))
+      HMap.new(@storage.set(k.qname, SafeBox.box(v)))
     end
 
     def fetch(k : HKey(T), default : T) : T forall T
       if box = @storage[k.qname]?
-        SafeBoxer(T).unbox box
+        SafeBox.unbox box, T
       else
         default
       end

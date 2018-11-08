@@ -4,6 +4,9 @@ require "immutable"
 module Joy
   VERSION = "0.1.0"
 
+  class TypeMismatch < Exception
+  end
+
   class SafeBox
     @@type_strings_by_type_id = {} of Int32 => String
 
@@ -26,11 +29,19 @@ module Joy
       SafeBox.new(T, Box(T).box(object))
     end
 
-    def self.unbox(safe_box : SafeBox, clazz : T.class) : T forall T
-      if safe_box.type_id != T.crystal_type_id
-        raise "Tried to unbox a SafeBox of #{safe_box.type_string} as a #{T}"
-      else
+    def self.unbox?(safe_box : SafeBox, clazz : T.class) : T? forall T
+      if safe_box.type_id == T.crystal_type_id
         Box(T).unbox(safe_box.box)
+      else
+        nil
+      end
+    end
+
+    def self.unbox(safe_box : SafeBox, clazz : T.class) : T forall T
+      if safe_box.type_id == T.crystal_type_id
+        Box(T).unbox(safe_box.box)
+      else
+        raise TypeCastError.new "tried to unbox a SafeBox of #{safe_box.type_string} as a #{T}"
       end
     end
   end

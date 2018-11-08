@@ -18,20 +18,44 @@ describe Joy do
   end
 
   describe SafeBox do
-    it "boxes Values and unboxes correctly when given the right type" do
-      val = 42
-      box : SafeBox = SafeBox.box val
-      SafeBox.unbox(box, typeof(val)).should eq val
+    describe "unbox" do
+      it "unboxes Values correctly when given the right type" do
+        val = 42
+        box : SafeBox = SafeBox.box val
+        SafeBox.unbox(box, typeof(val)).should eq val
+      end
+
+      it "unboxes References correctly and by reference when given the right type" do
+        val = [42]
+        box : SafeBox = SafeBox.box val
+        unboxed_val = SafeBox.unbox box, typeof(val)
+        unboxed_val.should eq val
+
+        unboxed_val[0] = 24
+        val.should eq [24]
+      end
+
+      it "raises when asked to unbox as a different type" do
+        val = 42
+        box : SafeBox = SafeBox.box val
+        expect_raises TypeCastError, /Int32.*Int64/ do
+          SafeBox.unbox box, Int64
+        end
+      end
     end
 
-    it "boxes References by reference and unboxes correctly when given the right type" do
-      val = [42]
-      box : SafeBox = SafeBox.box val
-      unboxed_val = SafeBox.unbox box, typeof(val)
-      unboxed_val.should eq val
+    describe "unbox?" do
+      it "unboxes Values correctly when given the right type" do
+        val = 42
+        box : SafeBox = SafeBox.box val
+        SafeBox.unbox?(box, typeof(val)).should eq val
+      end
 
-      unboxed_val[0] = 24
-      val.should eq [24]
+      it "returns nil when asked to unbox as a different type" do
+        val = 42
+        box : SafeBox = SafeBox.box val
+        SafeBox.unbox?(box, Int64).should be_nil
+      end
     end
   end
 end

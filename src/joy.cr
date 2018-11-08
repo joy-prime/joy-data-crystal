@@ -6,12 +6,12 @@ module Joy
 
   class SafeBox
     @@type_strings_by_type_id = {} of Int32 => String
-  
+
     getter type_id : Int32
     getter type_string : String
     getter box : Void*
-  
-    def initialize(clazz : Class, box)
+
+    def initialize(clazz : Class, @box)
       @type_id = clazz.crystal_type_id
       if ts = @@type_strings_by_type_id[@type_id]?
         @type_string = ts
@@ -20,13 +20,12 @@ module Joy
         @@type_strings_by_type_id[@type_id] = ts
         @type_string = ts
       end
-      @box = box
     end
 
     def self.box(object : T) : SafeBox forall T
       SafeBox.new(T, Box(T).box(object))
     end
-  
+
     def self.unbox(safe_box : SafeBox, clazz : T.class) : T forall T
       if safe_box.type_id != T.crystal_type_id
         raise "Tried to unbox a SafeBox of #{safe_box.type_string} as a #{T}"
@@ -35,7 +34,7 @@ module Joy
       end
     end
   end
-  
+
   struct QName
     getter name : Symbol
     getter namespace : Symbol
@@ -62,7 +61,7 @@ module Joy
   class HMap
     alias Storage = Immutable::Map(QName, SafeBox)
 
-    def initialize()
+    def initialize
       @storage = Storage.new
     end
 

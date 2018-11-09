@@ -15,6 +15,14 @@ module Joy
   module Data
   end
 
+  struct ::Value
+    include Joy::Data
+  end
+  
+  class ::Reference
+    include Joy::Data
+  end
+
   class Field(T)
     @@type_strings_by_name = {} of Name => String
 
@@ -52,13 +60,5 @@ module Joy
       end
     end
   end
-end
-
-struct Value
-  include Joy::Data
-end
-
-class Reference
-  include Joy::Data
 end
 

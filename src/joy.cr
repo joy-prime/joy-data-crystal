@@ -54,14 +54,11 @@ module Joy
   end
 end
 
-{% for type in %w(Bool Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64) %}
-struct {{type.id}}
+struct Value
   include Joy::Data
 end
-{% end %}
 
-{% for type in %w(String) %}
-class {{type.id}}
+class Reference
   include Joy::Data
 end
-{% end %}
+

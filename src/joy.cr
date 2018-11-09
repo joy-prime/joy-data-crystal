@@ -10,11 +10,11 @@ module Joy
   class SafeBox
     @@type_strings_by_type_id = {} of Int32 => String
 
-    getter type_id : Int32
-    getter type_string : String
-    getter box : Void*
+    @type_id : Int32
+    @type_string : String
+    @box : Void*
 
-    def initialize(clazz : Class, @box)
+    protected def initialize(clazz : Class, @box)
       @type_id = clazz.crystal_type_id
       if ts = @@type_strings_by_type_id[@type_id]?
         @type_string = ts
@@ -29,19 +29,19 @@ module Joy
       SafeBox.new(T, Box(T).box(object))
     end
 
-    def self.unbox?(safe_box : SafeBox, clazz : T.class) : T? forall T
-      if safe_box.type_id == T.crystal_type_id
-        Box(T).unbox(safe_box.box)
+    def unbox?(clazz : T.class) : T? forall T
+      if @type_id == T.crystal_type_id
+        Box(T).unbox @box
       else
         nil
       end
     end
 
-    def self.unbox(safe_box : SafeBox, clazz : T.class) : T forall T
-      if safe_box.type_id == T.crystal_type_id
-        Box(T).unbox(safe_box.box)
+    def unbox(clazz : T.class) : T forall T
+      if @type_id == T.crystal_type_id
+        Box(T).unbox @box
       else
-        raise TypeCastError.new "tried to unbox a SafeBox of #{safe_box.type_string} as a #{T}"
+        raise TypeCastError.new "tried to unbox a SafeBox of #{@type_string} as a #{T}"
       end
     end
   end
@@ -80,12 +80,12 @@ module Joy
     end
 
     def set(k : HKey(T), v : T) : HMap forall T
-      HMap.new(@storage.set(k.qname, SafeBox.box(v)))
+      HMap.new(@storage.set(k.qname, SafeBox.box v))
     end
 
     def fetch(k : HKey(T), default : T) : T forall T
       if box = @storage[k.qname]?
-        SafeBox.unbox box, T
+        box.unbox T
       else
         default
       end

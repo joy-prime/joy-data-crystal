@@ -28,7 +28,7 @@ describe Joy do
       it "unboxes References correctly and by reference when given the right type" do
         val = [42]
         box : SafeBox = SafeBox.box val
-        unboxed_val = SafeBox.unbox box, typeof(val)
+        unboxed_val = box.unbox typeof(val)
         unboxed_val.should eq val
 
         unboxed_val[0] = 24
@@ -39,7 +39,7 @@ describe Joy do
         val = 42
         box : SafeBox = SafeBox.box val
         expect_raises TypeCastError, /Int32.*Int64/ do
-          SafeBox.unbox box, Int64
+          box.unbox Int64
         end
       end
     end
@@ -48,13 +48,13 @@ describe Joy do
       it "unboxes Values correctly when given the right type" do
         val = 42
         box : SafeBox = SafeBox.box val
-        SafeBox.unbox?(box, typeof(val)).should eq val
+        box.unbox?(typeof(val)).should eq val
       end
 
       it "returns nil when asked to unbox as a different type" do
         val = 42
         box : SafeBox = SafeBox.box val
-        SafeBox.unbox?(box, Int64).should be_nil
+        box.unbox?(Int64).should be_nil
       end
     end
   end

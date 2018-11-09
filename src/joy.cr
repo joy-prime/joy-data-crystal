@@ -30,7 +30,7 @@ module Joy
     end
 
     def unbox?(clazz : T.class) : T? forall T
-      if @type_id == T.crystal_type_id
+      if @type_id == clazz.crystal_type_id
         Box(T).unbox @box
       else
         nil
@@ -38,7 +38,7 @@ module Joy
     end
 
     def unbox(clazz : T.class) : T forall T
-      if @type_id == T.crystal_type_id
+      if @type_id == clazz.crystal_type_id
         Box(T).unbox @box
       else
         raise TypeCastError.new "tried to unbox a SafeBox of #{@type_string} as a #{T}"

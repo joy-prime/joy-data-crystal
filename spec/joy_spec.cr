@@ -22,7 +22,7 @@ describe Joy do
       it "unboxes Values correctly when given the right type" do
         val = 42
         box : SafeBox = SafeBox.box val
-        SafeBox.unbox(box, typeof(val)).should eq val
+        box.unbox(typeof(val)).should eq val
       end
 
       it "unboxes References correctly and by reference when given the right type" do

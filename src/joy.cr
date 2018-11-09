@@ -4,73 +4,34 @@ require "immutable"
 module Joy
   VERSION = "0.1.0"
 
-  class TypeMismatch < Exception
-  end
-
-  class SafeBox
-    @@type_strings_by_type_id = {} of Int32 => String
-
-    @type_id : Int32
-    @type_string : String
-    @box : Void*
-
-    protected def initialize(clazz : Class, @box)
-      @type_id = clazz.crystal_type_id
-      if ts = @@type_strings_by_type_id[@type_id]?
-        @type_string = ts
-      else
-        ts = clazz.to_s
-        @@type_strings_by_type_id[@type_id] = ts
-        @type_string = ts
-      end
-    end
-
-    def self.box(object : T) : SafeBox forall T
-      SafeBox.new(T, Box(T).box(object))
-    end
-
-    def unbox?(clazz : T.class) : T? forall T
-      if @type_id == clazz.crystal_type_id
-        Box(T).unbox @box
-      else
-        nil
-      end
-    end
-
-    def unbox(clazz : T.class) : T forall T
-      if @type_id == clazz.crystal_type_id
-        Box(T).unbox @box
-      else
-        raise TypeCastError.new "tried to unbox a SafeBox of #{@type_string} as a #{T}"
-      end
-    end
-  end
-
-  struct QName
-    getter name : Symbol
+  struct Name
+    getter symbol : Symbol
     getter namespace : Symbol
 
-    def initialize(@name, @namespace)
+    def initialize(@symbol, @namespace)
     end
   end
 
-  struct HKey(T)
-    @@type_strings_by_type_id_by_qname = {} of QName => String
+  module Data
+  end
 
-    getter qname : QName
+  class Field(T)
+    @@type_strings_by_name = {} of Name => String
+
+    getter name : Name
     getter docstring : String?
 
-    def initialize(name : Symbol, namespace : Symbol, @docstring = nil)
-      @qname = QName.new name, namespace
-      if existing = @@type_strings_by_type_id_by_qname[@qname]?
-        raise "Duplicate HKey: already declared #{qname} as #{existing}"
+    def initialize(symbol, namespace, @docstring = nil)
+      @name = Name.new(symbol, namespace)
+      if existing = @@type_strings_by_name[@name]?
+        raise "Duplicate field name: already declared #{name} as #{existing}"
       end
-      @@type_strings_by_type_id_by_qname[@qname] = T.to_s
+      @@type_strings_by_name[@name] = T.to_s
     end
   end
 
-  class HMap
-    alias Storage = Immutable::Map(QName, SafeBox)
+  class Map
+    alias Storage = Immutable::Map(Name, Data)
 
     def initialize
       @storage = Storage.new
@@ -79,16 +40,28 @@ module Joy
     def initialize(@storage)
     end
 
-    def set(k : HKey(T), v : T) : HMap forall T
-      HMap.new(@storage.set(k.qname, SafeBox.box v))
+    def set(f : Field(T), v : T) : Map forall T
+      Map.new(@storage.set f.name, v)
     end
 
-    def fetch(k : HKey(T), default : T) : T forall T
-      if box = @storage[k.qname]?
-        box.unbox T
+    def fetch(k : Field(T), default : T) : T forall T
+      if data = @storage[k.name]?
+        data.as(T)
       else
         default
       end
     end
   end
 end
+
+{% for type in %w(Bool Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64) %}
+struct {{type.id}}
+  include Joy::Data
+end
+{% end %}
+
+{% for type in %w(String) %}
+class {{type.id}}
+  include Joy::Data
+end
+{% end %}

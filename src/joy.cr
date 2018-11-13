@@ -10,6 +10,10 @@ module Joy
 
     def initialize(@symbol, @namespace)
     end
+
+    def to_s(io : IO)
+      io.puts "Name(#{symbol}, #{namespace})"
+    end
   end
 
   module Data
@@ -18,7 +22,7 @@ module Joy
   struct ::Value
     include Joy::Data
   end
-  
+
   class ::Reference
     include Joy::Data
   end
@@ -27,14 +31,18 @@ module Joy
     @@type_strings_by_name = {} of Name => String
 
     getter name : Name
-    getter docstring : String?
+    getter default : T
 
-    def initialize(symbol, namespace, @docstring = nil)
+    def initialize(symbol, namespace, @default)
       @name = Name.new(symbol, namespace)
       if existing = @@type_strings_by_name[@name]?
         raise "Duplicate field name: already declared #{name} as #{existing}"
       end
       @@type_strings_by_name[@name] = T.to_s
+    end
+
+    def to_s(io : IO)
+      io.puts "Field(#{@@type_strings_by_name[@name]})(#{name.symbol} #{name.namespace})"
     end
   end
 
@@ -52,13 +60,25 @@ module Joy
       Map.new(@storage.set f.name, v)
     end
 
-    def fetch(k : Field(T), default : T) : T forall T
-      if data = @storage[k.name]?
-        data.as(T)
-      else
-        default
+    # Returns the value associated with *field*, or, when not found, the field's default value.
+    def [](field : Field(T)) : T forall T
+      @storage.fetch field.name do |key|
+        field.default
       end
+    end
+
+    # def has_field?(field : Field(T)) : Bool
+    #  data = @storage.fetch field.name do
+    #    break false
+    #  end
+    #  true
+    #end
+  end
+
+  class Mapish
+    getter map : Map
+
+    def initialize(@map)
     end
   end
 end
-

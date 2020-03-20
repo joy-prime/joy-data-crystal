@@ -1,5 +1,7 @@
 # Joy Data Shapes for Crystal
 
+**PAUSED INDEFINITELY -- instead see wisdom-kotlin**
+
 Joy Data is inspired by Clojure's philosophy of "modeling data as data". It aspires
 to gently float a runtime-type-checked data manipulation environment 
 above Crystal's static type system. Joy values are immutable and are manipulated
